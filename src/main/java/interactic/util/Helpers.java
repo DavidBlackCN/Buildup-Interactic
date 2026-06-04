@@ -26,16 +26,18 @@ public class Helpers {
         final EntityHitResult result = ProjectileUtil.getEntityHitResult(camera, camera.getEyePosition(), denormalizedFacing,
                 camera.getBoundingBox().expandTowards(normalizedFacing.scale(reach)).inflate(1), entity -> entity instanceof ItemEntity, reach * reach);
 
-        if (result != null) {
-            var distance = camera.position().distanceTo(result.getLocation()) - .3;
-            if (camera.pick(distance, 1f, false) instanceof BlockHitResult blockResult) {
-                if (!camera.level().getBlockState(blockResult.getBlockPos()).getCollisionShape(camera.level(), blockResult.getBlockPos()).isEmpty()) {
-                    return null;
-                }
+        if (result == null || !(result.getEntity() instanceof ItemEntity item)) {
+            return null;
+        }
+
+        var distance = camera.position().distanceTo(result.getLocation()) - .3;
+        if (camera.pick(distance, 1f, false) instanceof BlockHitResult blockResult) {
+            if (!camera.level().getBlockState(blockResult.getBlockPos()).getCollisionShape(camera.level(), blockResult.getBlockPos()).isEmpty()) {
+                return null;
             }
         }
 
-        return result == null ? null : (ItemEntity) result.getEntity();
+        return item;
     }
 
     public static boolean canPlayerPickUpItem(Player player, ItemEntity item) {
