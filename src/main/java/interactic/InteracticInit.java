@@ -8,13 +8,15 @@ import interactic.util.InteracticPlayerExtension;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.resource.featuretoggle.FeatureFlags;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.Item;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 
 import java.util.function.Consumer;
 
@@ -27,8 +29,8 @@ public class InteracticInit implements ModInitializer {
     private static final InteracticConfig CONFIG = InteracticConfig.createAndLoad();
     private static float itemRotationSpeedMultiplier = 1f;
 
-    public static final ScreenHandlerType<ItemFilterScreenHandler> ITEM_FILTER_SCREEN_HANDLER =
-            Registry.register(Registries.SCREEN_HANDLER, id("item_filter"), new ScreenHandlerType<>(ItemFilterScreenHandler::new, FeatureFlags.DEFAULT_ENABLED_FEATURES));
+    public static final MenuType<ItemFilterScreenHandler> ITEM_FILTER_SCREEN_HANDLER =
+            Registry.register(BuiltInRegistries.MENU, id("item_filter"), new MenuType<>(ItemFilterScreenHandler::new, FeatureFlags.DEFAULT_FLAGS));
 
     @Override
     public void onInitialize() {
@@ -51,14 +53,15 @@ public class InteracticInit implements ModInitializer {
         if (FabricLoader.getInstance().isModLoaded("iris")) itemRotationSpeedMultiplier = 0.5f;
 
         if (CONFIG.itemFilterEnabled()) {
-            ITEM_FILTER = Registry.register(Registries.ITEM, id("item_filter"), new ItemFilterItem());
+            var key = ResourceKey.create(Registries.ITEM, id("item_filter"));
+            ITEM_FILTER = Registry.register(BuiltInRegistries.ITEM, key, new ItemFilterItem(new Item.Properties().setId(key)));
         }
 
         InteracticNetworking.init();
     }
 
     public static Identifier id(String path) {
-        return Identifier.of(MOD_ID, path);
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 
     public static Item getItemFilter() {
@@ -80,4 +83,3 @@ public class InteracticInit implements ModInitializer {
         return CONFIG;
     }
 }
-

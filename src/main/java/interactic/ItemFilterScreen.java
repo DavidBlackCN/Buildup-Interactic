@@ -3,36 +3,36 @@ package interactic;
 import interactic.util.InteracticNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TexturedButtonWidget;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.ImageButton;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Inventory;
 
-public class ItemFilterScreen extends HandledScreen<ItemFilterScreenHandler> {
+public class ItemFilterScreen extends AbstractContainerScreen<ItemFilterScreenHandler> {
 
     private static final Identifier TEXTURE = InteracticInit.id("textures/gui/item_filter.png");
 
     public boolean blockMode = true;
 
-    private ButtonWidget blockButton = null;
-    private ButtonWidget allowButton = null;
+    private Button blockButton = null;
+    private Button allowButton = null;
 
-    public ItemFilterScreen(ItemFilterScreenHandler handler, PlayerInventory inventory, Text title) {
+    public ItemFilterScreen(ItemFilterScreenHandler handler, Inventory inventory, Component title) {
         super(handler, inventory, title);
-        this.backgroundHeight = 178;
-        this.playerInventoryTitleY = 69420;
+        this.imageHeight = 178;
+        this.inventoryLabelY = 69420;
     }
 
     @Override
     protected void init() {
         super.init();
-        this.titleX = (this.backgroundWidth - this.textRenderer.getWidth(this.title)) / 2;
+        this.titleLabelX = (this.imageWidth - this.font.width(this.title)) / 2;
 
-        this.addDrawableChild(this.blockButton = ButtonWidget.builder(Text.literal("Block"), button -> sendModeRequest(true)).dimensions(this.x + 43, this.y + 78, 60, 12).build());
-        this.addDrawableChild(this.allowButton = ButtonWidget.builder(Text.literal("Allow"), button -> sendModeRequest(false)).dimensions(this.x + 108, this.y + 78, 60, 12).build());
+        this.addRenderableWidget(this.blockButton = Button.builder(Component.literal("Block"), button -> sendModeRequest(true)).bounds(this.leftPos + 43, this.topPos + 78, 60, 12).build());
+        this.addRenderableWidget(this.allowButton = Button.builder(Component.literal("Allow"), button -> sendModeRequest(false)).bounds(this.leftPos + 108, this.topPos + 78, 60, 12).build());
     }
 
     private static void sendModeRequest(boolean mode) {
@@ -40,23 +40,23 @@ public class ItemFilterScreen extends HandledScreen<ItemFilterScreenHandler> {
     }
 
     @SuppressWarnings({"ConstantConditions"})
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
 
-        context.drawText(this.client.textRenderer, "Mode", this.x + 8, this.y + 80, 0x404040, false);
+        context.drawString(this.minecraft.font, "Mode", this.leftPos + 8, this.topPos + 80, 0x404040, false);
 
-        this.drawMouseoverTooltip(context, mouseX, mouseY);
+        this.renderTooltip(context, mouseX, mouseY);
 
         this.blockButton.active = !this.blockMode;
         this.allowButton.active = this.blockMode;
     }
 
     @Override
-    protected void drawBackground(DrawContext context, float delta, int mouseX, int mouseY) {
-        context.drawTexture(TEXTURE, this.x, this.y, 0, 0, this.backgroundWidth, this.backgroundHeight);
+    protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+        context.blit(TEXTURE, this.leftPos, this.topPos, this.imageWidth, this.imageHeight, 0, 0, this.imageWidth / 256f, this.imageHeight / 256f);
 
         if (!this.blockMode) {
-            context.drawTexture(TEXTURE, this.x + 7, this.y + 19, 0, 178, 162, 54);
+            context.blit(TEXTURE, this.leftPos + 7, this.topPos + 19, 162, 54, 0, 178 / 256f, 162 / 256f, (178 + 54) / 256f);
         }
     }
 }

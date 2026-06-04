@@ -8,23 +8,23 @@ import io.wispforest.endec.impl.ReflectiveEndecBuilder;
 import io.wispforest.owo.serialization.CodecUtils;
 import io.wispforest.owo.serialization.endec.MinecraftEndecs;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.minecraft.component.ComponentType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroups;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.screen.NamedScreenHandlerFactory;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.text.Text;
-import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
-import net.minecraft.util.collection.DefaultedList;
-import net.minecraft.world.World;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.resources.Identifier;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -34,80 +34,81 @@ import java.util.List;
 public class ItemFilterItem extends Item {
 
     static {
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> {
-            entries.add(InteracticInit.getItemFilter());
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
+            entries.accept(InteracticInit.getItemFilter());
         });
     }
 
-    public static final ComponentType<Boolean> ENABLED = Registry.register(
-            Registries.DATA_COMPONENT_TYPE,
+    public static final DataComponentType<Boolean> ENABLED = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE,
             InteracticInit.id("item_filter_enabled"),
-            ComponentType.<Boolean>builder()
-                    .codec(Codec.BOOL)
-                    .packetCodec(PacketCodecs.BOOL)
+            DataComponentType.<Boolean>builder()
+                    .persistent(Codec.BOOL)
+                    .networkSynchronized(ByteBufCodecs.BOOL)
                     .build()
     );
 
-    public static final ComponentType<Boolean> BLOCK_MODE = Registry.register(
-            Registries.DATA_COMPONENT_TYPE,
+    public static final DataComponentType<Boolean> BLOCK_MODE = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE,
             InteracticInit.id("item_filter_block_mode"),
-            ComponentType.<Boolean>builder()
-                    .codec(Codec.BOOL)
-                    .packetCodec(PacketCodecs.BOOL)
+            DataComponentType.<Boolean>builder()
+                    .persistent(Codec.BOOL)
+                    .networkSynchronized(ByteBufCodecs.BOOL)
                     .build()
     );
 
-    public static final ComponentType<DefaultedList<ItemStack>> FILTER_SLOTS = Registry.register(
-            Registries.DATA_COMPONENT_TYPE,
+    public static final DataComponentType<NonNullList<ItemStack>> FILTER_SLOTS = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE,
             InteracticInit.id("item_filter_slots"),
-            ComponentType.<DefaultedList<ItemStack>>builder()
-                    .codec(CodecUtils.toCodec(InventoryEntry.INVENTORY_ENDEC))
-                    .packetCodec(CodecUtils.toPacketCodec(InventoryEntry.INVENTORY_ENDEC))
+            DataComponentType.<NonNullList<ItemStack>>builder()
+                    .persistent(CodecUtils.toCodec(InventoryEntry.INVENTORY_ENDEC))
+                    .networkSynchronized(CodecUtils.toPacketCodec(InventoryEntry.INVENTORY_ENDEC))
                     .build()
     );
 
-    public ItemFilterItem() {
-        super(new Settings().maxCount(1)
+    public ItemFilterItem(Properties properties) {
+        super(properties.stacksTo(1)
                 .component(ENABLED, true)
                 .component(BLOCK_MODE, true)
-                .component(FILTER_SLOTS, DefaultedList.ofSize(ItemFilterScreenHandler.SLOT_COUNT, ItemStack.EMPTY)));
+                .component(FILTER_SLOTS, NonNullList.withSize(ItemFilterScreenHandler.SLOT_COUNT, ItemStack.EMPTY)));
     }
 
     @Override
-    public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-        final var playerStack = user.getStackInHand(hand);
-        if (user.isSneaking()) {
-            playerStack.apply(ENABLED, false, enabled -> !enabled);
+    public InteractionResult use(Level world, Player user, InteractionHand hand) {
+        final var playerStack = user.getItemInHand(hand);
+        if (user.isShiftKeyDown()) {
+            playerStack.update(ENABLED, false, enabled -> !enabled);
         } else {
-            if (world.isClient) return TypedActionResult.success(playerStack);
+            if (world.isClientSide()) return InteractionResult.SUCCESS;
             final var inv = new FilterInventory(playerStack);
-            final var factory = new NamedScreenHandlerFactory() {
+            final var factory = new MenuProvider() {
                 @Override
-                public @NotNull ScreenHandler createMenu(int syncId, PlayerInventory playerInv, PlayerEntity player) {
+                public @NotNull AbstractContainerMenu createMenu(int syncId, Inventory playerInv, Player player) {
                     return new ItemFilterScreenHandler(syncId, playerInv, inv);
                 }
 
                 @Override
-                public Text getDisplayName() {
+                public net.minecraft.network.chat.Component getDisplayName() {
                     return getName();
                 }
             };
-            user.openHandledScreen(factory);
+            user.openMenu(factory);
             InteracticNetworking.CHANNEL.serverHandle(user).send(new SetFilterModePacket(inv.getFilterMode()));
         }
-        return TypedActionResult.success(playerStack);
+        return InteractionResult.SUCCESS;
     }
 
     public static List<Item> getItemsInFilter(ItemStack stack) {
-        return stack.getOrDefault(FILTER_SLOTS, DefaultedList.<ItemStack>of()).stream().map(ItemStack::getItem).toList();
+        return stack.getOrDefault(FILTER_SLOTS, NonNullList.<ItemStack>create()).stream().map(ItemStack::getItem).toList();
     }
 
-    public static class FilterInventory implements Inventory {
+    public static class FilterInventory extends SimpleContainer {
 
         public final ItemStack filter;
-        private final DefaultedList<ItemStack> items = DefaultedList.ofSize(ItemFilterScreenHandler.SLOT_COUNT, ItemStack.EMPTY);
+        private final NonNullList<ItemStack> items = NonNullList.withSize(ItemFilterScreenHandler.SLOT_COUNT, ItemStack.EMPTY);
 
         public FilterInventory(ItemStack filter) {
+            super(ItemFilterScreenHandler.SLOT_COUNT);
             this.filter = filter;
 
             var filterItems = filter.getOrDefault(FILTER_SLOTS, this.items);
@@ -125,7 +126,7 @@ public class ItemFilterItem extends Item {
         }
 
         @Override
-        public int size() {
+        public int getContainerSize() {
             return ItemFilterScreenHandler.SLOT_COUNT;
         }
 
@@ -135,41 +136,41 @@ public class ItemFilterItem extends Item {
         }
 
         @Override
-        public ItemStack getStack(int slot) {
+        public ItemStack getItem(int slot) {
             return this.items.get(slot);
         }
 
         @Override
-        public ItemStack removeStack(int slot, int amount) {
+        public ItemStack removeItem(int slot, int amount) {
             var stack = this.items.get(slot).copy();
             this.items.set(slot, ItemStack.EMPTY);
             return stack;
         }
 
         @Override
-        public ItemStack removeStack(int slot) {
+        public ItemStack removeItemNoUpdate(int slot) {
             var stack = this.items.get(slot).copy();
             this.items.set(slot, ItemStack.EMPTY);
             return stack;
         }
 
         @Override
-        public void setStack(int slot, ItemStack stack) {
+        public void setItem(int slot, ItemStack stack) {
             this.items.set(slot, stack);
         }
 
         @Override
-        public void markDirty() {
+        public void setChanged() {
             this.filter.set(FILTER_SLOTS, this.items);
         }
 
         @Override
-        public boolean canPlayerUse(PlayerEntity player) {
+        public boolean stillValid(Player player) {
             return player.getInventory().contains(filter);
         }
 
         @Override
-        public void clear() {
+        public void clearContent() {
             Collections.fill(this.items, ItemStack.EMPTY);
         }
     }
@@ -178,9 +179,9 @@ public class ItemFilterItem extends Item {
         private static final ReflectiveEndecBuilder BUILDER = new ReflectiveEndecBuilder(MinecraftEndecs::addDefaults);
 
         public static final Endec<InventoryEntry> ENDEC = RecordEndec.create(BUILDER, InventoryEntry.class);
-        public static final Endec<DefaultedList<ItemStack>> INVENTORY_ENDEC = InventoryEntry.ENDEC.listOf().xmap(
+        public static final Endec<NonNullList<ItemStack>> INVENTORY_ENDEC = InventoryEntry.ENDEC.listOf().xmap(
                 entries -> {
-                    var list = DefaultedList.ofSize(ItemFilterScreenHandler.SLOT_COUNT, ItemStack.EMPTY);
+                    var list = NonNullList.withSize(ItemFilterScreenHandler.SLOT_COUNT, ItemStack.EMPTY);
                     entries.forEach(entry -> list.set(entry.slot, entry.stack));
                     return list;
                 }, stacks -> {

@@ -5,20 +5,13 @@ import interactic.InteracticInit;
 import interactic.util.Helpers;
 import interactic.util.InteracticNetworking;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.client.option.GameOptions;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.text.Text;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
+import net.minecraft.client.player.LocalPlayer;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -27,83 +20,85 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.lwjgl.glfw.GLFW;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-@Mixin(MinecraftClient.class)
+@Mixin(Minecraft.class)
 public class MinecraftClientMixin {
 
     @Unique
     private float dropPower = 0.9f;
 
     @Shadow
-    @Nullable
-    public Entity cameraEntity;
-
-    @Shadow
-    @Nullable
-    public ClientPlayerInteractionManager interactionManager;
-
-    @Shadow
-    @Nullable
-    public ClientPlayerEntity player;
-
-    @Shadow
     @Final
-    public GameOptions options;
+    public Options options;
 
-    @Inject(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isRiding()Z", shift = At.Shift.AFTER), cancellable = true)
+    @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
     private void tryPickupItem(CallbackInfo ci) {
         if (!InteracticInit.getConfig().rightClickPickup()) return;
-        if (KeyBindingHelper.getBoundKeyOf(InteracticClientInit.PICKUP_ITEM) != InputUtil.UNKNOWN_KEY) return;
+        if (KeyBindingHelper.getBoundKeyOf(InteracticClientInit.PICKUP_ITEM) != InputConstants.UNKNOWN) return;
 
-        if (Helpers.raycastItem(cameraEntity, (float) this.player.getAttributeValue(EntityAttributes.PLAYER_BLOCK_INTERACTION_RANGE)) == null) return;
-        InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.Pickup());
-        this.player.swingHand(Hand.MAIN_HAND);
-        ci.cancel();
-    }
+        var player = Minecraft.getInstance().player;
+        var camera = Minecraft.getInstance().getCameraEntity();
+        if (player == null || camera == null) return;
 
-    @Redirect(method = "handleInputEvents", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;dropSelectedItem(Z)Z"))
-    private boolean handleDropPower(ClientPlayerEntity clientPlayerEntity, boolean dropEntireStack) {
-        if (!InteracticInit.getConfig().itemThrowing()) return clientPlayerEntity.dropSelectedItem(dropEntireStack);
-
-        if (!Screen.hasShiftDown()) {
-            dropPower += 0.075f;
-            if (dropPower > 5) dropPower = 5;
-            if (dropPower >= 1.5)
-                clientPlayerEntity.sendMessage(Text.of("Power: " + BigDecimal.valueOf(Math.max(dropPower, 1)).setScale(1, RoundingMode.HALF_UP)), true);
-            return false;
-        } else {
-            return clientPlayerEntity.dropSelectedItem(dropEntireStack);
+        if (Helpers.raycastItem(camera, (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE)) != null) {
+            InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.Pickup());
+            player.swing(InteractionHand.MAIN_HAND);
+            ci.cancel();
         }
     }
 
-    @Redirect(method = "handleInputEvents", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
-    private void dontSwingArms(ClientPlayerEntity player, Hand hand) {
-        if (!InteracticInit.getConfig().swingArm()) return;
-        player.swingHand(hand);
-    }
-
-    @Inject(method = "handleInputEvents", at = @At("RETURN"))
+    @Inject(method = "handleKeybinds", at = @At("RETURN"))
     private void afterDrop(CallbackInfo ci) {
         if (!InteracticInit.getConfig().itemThrowing()) return;
 
-        if (dropPower > 0.9f && !options.dropKey.isPressed()) {
-            final var dropAll = Screen.hasControlDown();
+        if (dropPower > 0.9f && !options.keyDrop.isDown()) {
+            long window = Minecraft.getInstance().getWindow().handle();
+            final var dropAll = GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS;
 
             if (dropPower >= 1.5) {
+                var player = Minecraft.getInstance().player;
+                if (player == null) return;
                 InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.DropWithPower(dropPower, dropAll));
 
-                if (!this.player.getInventory().removeStack(this.player.getInventory().selectedSlot, dropAll && !this.player.getInventory().getMainHandStack().isEmpty() ? this.player.getInventory().getMainHandStack().getCount() : 1).isEmpty()) {
-                    if (InteracticInit.getConfig().swingArm()) this.player.swingHand(Hand.MAIN_HAND);
+                int selectedSlot = ((PlayerInventoryAccessor) (Object) player.getInventory()).interactic$getSelectedSlot();
+                if (!player.getInventory().removeItem(selectedSlot, dropAll && !player.getInventory().getItem(selectedSlot).isEmpty() ? player.getInventory().getItem(selectedSlot).getCount() : 1).isEmpty()) {
+                    if (InteracticInit.getConfig().swingArm()) player.swing(InteractionHand.MAIN_HAND);
                 }
-            } else if (this.player.dropSelectedItem(dropAll)) {
-                if (InteracticInit.getConfig().swingArm()) this.player.swingHand(Hand.MAIN_HAND);
+            } else {
+                var player = Minecraft.getInstance().player;
+                if (player != null && player.drop(dropAll)) {
+                    if (InteracticInit.getConfig().swingArm()) player.swing(InteractionHand.MAIN_HAND);
+                }
             }
 
             dropPower = 0.9f;
         }
+    }
+
+    @Redirect(method = "handleKeybinds", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;drop(Z)Z"))
+    private boolean handleDropPower(LocalPlayer clientPlayerEntity, boolean dropEntireStack) {
+        if (!InteracticInit.getConfig().itemThrowing()) return clientPlayerEntity.drop(dropEntireStack);
+
+        long window = Minecraft.getInstance().getWindow().handle();
+        if (GLFW.glfwGetKey(window, GLFW.GLFW_KEY_LEFT_SHIFT) != GLFW.GLFW_PRESS) {
+            dropPower += 0.075f;
+            if (dropPower > 5) dropPower = 5;
+            if (dropPower >= 1.5)
+                clientPlayerEntity.displayClientMessage(Component.literal("Power: " + BigDecimal.valueOf(Math.max(dropPower, 1)).setScale(1, RoundingMode.HALF_UP)), true);
+            return false;
+        } else {
+            return clientPlayerEntity.drop(dropEntireStack);
+        }
+    }
+
+    @Redirect(method = "handleKeybinds", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;swing(Lnet/minecraft/world/InteractionHand;)V"))
+    private void dontSwingArms(LocalPlayer player, InteractionHand hand) {
+        if (!InteracticInit.getConfig().swingArm()) return;
+        player.swing(hand);
     }
 
 }
