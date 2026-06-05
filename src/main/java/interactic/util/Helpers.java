@@ -11,6 +11,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Collection;
@@ -20,21 +21,65 @@ import java.util.stream.Collectors;
 public class Helpers {
 
     public static ItemEntity raycastItem(Entity camera, float reach) {
-        Vec3 normalizedFacing = camera.getViewVector(1.0F);
-        Vec3 denormalizedFacing = camera.getEyePosition().add(normalizedFacing.x * reach, normalizedFacing.y * reach, normalizedFacing.z * reach);
+        return raycastItem(camera, reach, false);
+    }
 
-        final EntityHitResult result = ProjectileUtil.getEntityHitResult(camera, camera.getEyePosition(), denormalizedFacing,
+    public static ItemEntity raycastItem(Entity camera, float reach, boolean strict) {
+        if (camera == null) return null;
+
+        Vec3 start = camera.getEyePosition();
+        Vec3 normalizedFacing = camera.getViewVector(1.0F);
+        Vec3 end = start.add(normalizedFacing.scale(reach));
+
+        final EntityHitResult result = ProjectileUtil.getEntityHitResult(camera, start, end,
                 camera.getBoundingBox().expandTowards(normalizedFacing.scale(reach)).inflate(1), entity -> entity instanceof ItemEntity, reach * reach);
 
         if (result == null || !(result.getEntity() instanceof ItemEntity item)) {
             return null;
         }
 
-        var distance = camera.position().distanceTo(result.getLocation()) - .3;
-        if (camera.pick(distance, 1f, false) instanceof BlockHitResult blockResult) {
-            if (!camera.level().getBlockState(blockResult.getBlockPos()).getCollisionShape(camera.level(), blockResult.getBlockPos()).isEmpty()) {
+        Vec3 itemHitLocation = result.getLocation();
+        if (strict) {
+            var strictHit = item.getBoundingBox().inflate(0.02).clip(start, end);
+            if (strictHit.isEmpty()) {
                 return null;
             }
+            itemHitLocation = strictHit.get();
+        }
+
+        if (camera.pick(reach, 1f, false) instanceof BlockHitResult blockResult && blockResult.getType() == HitResult.Type.BLOCK) {
+            if (!camera.level().getBlockState(blockResult.getBlockPos()).getCollisionShape(camera.level(), blockResult.getBlockPos()).isEmpty()) {
+                double itemDistanceSq = start.distanceToSqr(itemHitLocation);
+                double blockDistanceSq = start.distanceToSqr(blockResult.getLocation());
+                if (strict ? blockDistanceSq <= itemDistanceSq + 1.0E-6 : blockDistanceSq + 0.16 < itemDistanceSq) {
+                    return null;
+                }
+            }
+        }
+
+        return item;
+    }
+
+    public static ItemEntity raycastHoveredItem(Entity camera, float reach, HitResult focusHit) {
+        if (camera == null) return null;
+
+        Vec3 start = camera.getEyePosition();
+        Vec3 direction = camera.getViewVector(1.0F);
+        double maxReach = reach;
+
+        if (focusHit != null && focusHit.getType() != HitResult.Type.MISS) {
+            double focusDistance = start.distanceTo(focusHit.getLocation());
+            if (focusDistance < maxReach) {
+                maxReach = focusDistance + 0.05;
+            }
+        }
+
+        Vec3 end = start.add(direction.scale(maxReach));
+        final EntityHitResult result = ProjectileUtil.getEntityHitResult(camera, start, end,
+                camera.getBoundingBox().expandTowards(direction.scale(maxReach)).inflate(1), entity -> entity instanceof ItemEntity, maxReach * maxReach);
+
+        if (result == null || !(result.getEntity() instanceof ItemEntity item)) {
+            return null;
         }
 
         return item;

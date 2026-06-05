@@ -50,7 +50,7 @@ public class InteracticConfigModel {
     public boolean renderItemTooltips = true;
 
     @Comment("Whether Interactic should render the full tooltip of items")
-    public boolean renderFullTooltip = true;
+    public boolean renderFullTooltip = false;
 
     @Comment("Whether your arms should swing when dropping items")
     public boolean swingArm = true;

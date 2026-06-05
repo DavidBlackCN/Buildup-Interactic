@@ -17,6 +17,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
@@ -71,11 +72,12 @@ public abstract class ItemEntityRendererMixin extends EntityRenderer<ItemEntity,
         matrices.pushPose();
 
         final var item = itemStack.getItem();
+        boolean generatedFlatBlockItem = itemStack.is(Items.STRING) || itemStack.is(Items.WHEAT_SEEDS) || itemStack.is(Items.BEETROOT_SEEDS);
         double blockHeight = 0;
         boolean treatAsDepthModel = false;
         boolean isFlatModel = false;
         boolean isFlatNonDepthBlock = false;
-        if (item instanceof BlockItem blockItem) {
+        if (item instanceof BlockItem blockItem && !generatedFlatBlockItem) {
             final var blockState = blockItem.getBlock().defaultBlockState();
             final var shape = blockState.getShape(entity.level(), entity.blockPosition(), CollisionContext.empty());
             if (!shape.isEmpty()) {

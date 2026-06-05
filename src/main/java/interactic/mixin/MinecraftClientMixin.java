@@ -31,12 +31,20 @@ public class MinecraftClientMixin {
     @Unique
     private float dropPower = 0.9f;
 
+    @Unique
+    private boolean suppressUseUntilRelease;
+
     @Shadow
     @Final
     public Options options;
 
     @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
     private void tryPickupItem(CallbackInfo ci) {
+        if (suppressUseUntilRelease) {
+            ci.cancel();
+            return;
+        }
+
         if (!InteracticInit.getConfig().rightClickPickup()) return;
         if (KeyBindingHelper.getBoundKeyOf(InteracticClientInit.PICKUP_ITEM) != InputConstants.UNKNOWN) return;
 
@@ -44,8 +52,10 @@ public class MinecraftClientMixin {
         var camera = Minecraft.getInstance().getCameraEntity();
         if (player == null || camera == null) return;
 
-        if (Helpers.raycastItem(camera, (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE)) != null) {
-            InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.Pickup());
+        var item = Helpers.raycastItem(camera, (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE), true);
+        if (item != null) {
+            InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.Pickup(true));
+            suppressUseUntilRelease = true;
             player.swing(InteractionHand.MAIN_HAND);
             ci.cancel();
         }
@@ -53,6 +63,7 @@ public class MinecraftClientMixin {
 
     @Inject(method = "handleKeybinds", at = @At("RETURN"))
     private void afterDrop(CallbackInfo ci) {
+        if (!options.keyUse.isDown()) suppressUseUntilRelease = false;
         if (!InteracticInit.getConfig().itemThrowing()) return;
 
         if (dropPower > 0.9f && !options.keyDrop.isDown()) {

@@ -11,6 +11,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
@@ -115,6 +116,6 @@ public abstract class ItemEntityMixin extends Entity implements InteracticItemEx
 
     @Override
     public float getPickRadius() {
-        return .2f;
+        return this.getItem().getItem() instanceof BlockItem ? .45f : .2f;
     }
 }

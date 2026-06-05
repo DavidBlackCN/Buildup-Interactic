@@ -9,6 +9,7 @@ import interactic.mixin.PlayerInventoryAccessor;
 import io.wispforest.owo.network.OwoNetChannel;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 
 public class InteracticNetworking {
 
@@ -19,7 +20,10 @@ public class InteracticNetworking {
 
 
         CHANNEL.registerServerbound(Pickup.class, (message, access) -> {
-            final var item = Helpers.raycastItem(access.player().getCamera(), 6);
+            if (!InteracticInit.getConfig().rightClickPickup()) return;
+
+            var player = access.player();
+            final var item = Helpers.raycastItem(player.getCamera(), (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE), message.strict());
             if (item == null || ((ItemEntityAccessor) item).interactic$getPickupDelay() == Short.MAX_VALUE) {
                 return;
             }
@@ -27,7 +31,7 @@ public class InteracticNetworking {
             final var itemAccessor = (ItemEntityAccessor) item;
             final var pickupDelay = itemAccessor.interactic$getPickupDelay();
             itemAccessor.interactic$setPickupDelay(0);
-            item.playerTouch(access.player());
+            item.playerTouch(player);
             if (!item.isRemoved()) itemAccessor.interactic$setPickupDelay(pickupDelay);
         });
 
@@ -56,7 +60,7 @@ public class InteracticNetworking {
 
     }
 
-    public record Pickup() {}
+    public record Pickup(boolean strict) {}
 
     public record DropWithPower(float power, boolean dropAll) {}
 

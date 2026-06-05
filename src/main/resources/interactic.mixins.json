@@ -3,7 +3,6 @@
   "package": "interactic.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "InGameHudMixin",
     "ItemEntityRendererMixin",
     "ItemEntityRenderStateMixin",
     "MinecraftClientMixin"
