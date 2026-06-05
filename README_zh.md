@@ -1,4 +1,4 @@
-# Interactic
+# Buildup Interactic
 
 [![curseforge](https://img.shields.io/badge/-CurseForge-gray?style=for-the-badge&logo=curseforge&labelColor=orange)](https://www.curseforge.com/minecraft/mc-mods/interactic)
 [![modrinth](https://img.shields.io/badge/-modrinth-gray?style=for-the-badge&labelColor=green&labelWidth=15&logo=appveyor&logoColor=white)](https://modrinth.com/mod/interactic)
@@ -6,7 +6,7 @@
 
 ## 概述
 
-Interactic 为掉落物添加了更多的交互方式。它的许多功能灵感来源于 ItemPhysic，但本模组完全基于 Fabric 构建。
+Buildup Interactic 为掉落物添加了更多的交互方式。它基于 [Interactic](https://github.com/gliscowo/interactic) 移植至 Minecraft 1.21.11，并在原版基础上对拾取、投掷与渲染等交互细节做了进一步打磨。
 
 ## 功能
 
@@ -67,6 +67,10 @@ Interactic 为掉落物添加了更多的交互方式。它的许多功能灵感
 - 修复了拾取动画——现在通过设置 `pickupDelay` 然后调用 `playerTouch()` 来触发原版拾取动效
 - 修复了跨实体渲染数据混淆——通过在 `ItemEntityRenderState` 上存储每实体数据解决
 - 修复了方块物品的渲染深度检测，改进平放/非平放判断
+- 修复了准星指向掉落物时不显示物品名的问题：`GuiGraphics.drawString` 在 1.21.11 要求颜色带 alpha 通道，颜色值由 `0xFFFFFF` 改为 `0xFFFFFFFF`
+- 还原了掉落物落地归位动画的样式：归位步长由固定值改回与原版一致的按 partial tick 缩放，使物品平滑转正而非瞬间贴地
+- 放宽了右键拾取的命中判定，使其与原版一致，可在物品飞行途中右键拾取
+- 优化了空手拾取方块/手持方块拾取物品时不会误放置方块的行为
 
 ### 已知限制
 

@@ -60,31 +60,6 @@ public class Helpers {
         return item;
     }
 
-    public static ItemEntity raycastHoveredItem(Entity camera, float reach, HitResult focusHit) {
-        if (camera == null) return null;
-
-        Vec3 start = camera.getEyePosition();
-        Vec3 direction = camera.getViewVector(1.0F);
-        double maxReach = reach;
-
-        if (focusHit != null && focusHit.getType() != HitResult.Type.MISS) {
-            double focusDistance = start.distanceTo(focusHit.getLocation());
-            if (focusDistance < maxReach) {
-                maxReach = focusDistance + 0.05;
-            }
-        }
-
-        Vec3 end = start.add(direction.scale(maxReach));
-        final EntityHitResult result = ProjectileUtil.getEntityHitResult(camera, start, end,
-                camera.getBoundingBox().expandTowards(direction.scale(maxReach)).inflate(1), entity -> entity instanceof ItemEntity, maxReach * maxReach);
-
-        if (result == null || !(result.getEntity() instanceof ItemEntity item)) {
-            return null;
-        }
-
-        return item;
-    }
-
     public static boolean canPlayerPickUpItem(Player player, ItemEntity item) {
         if (!InteracticInit.getConfig().autoPickup() && player.isShiftKeyDown() && !item.getTags().contains("interactic.ignore_auto_pickup_rule")) {
             return true;

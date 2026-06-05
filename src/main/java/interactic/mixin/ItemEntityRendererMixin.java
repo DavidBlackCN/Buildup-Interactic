@@ -118,15 +118,16 @@ public abstract class ItemEntityRendererMixin extends EntityRenderer<ItemEntity,
 
         if (angle >= TWO_PI) angle -= TWO_PI;
 
+        float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false);
         if (entity.onGround() && !(angle == 0 || angle == (float) Math.PI)) {
             if (angle > Math.PI) {
-                if (angle > THREE_HALF_PI) angle += 0.5f;
-                else angle -= 0.5f;
+                if (angle > THREE_HALF_PI) angle += tickDelta * 0.5f;
+                else angle -= tickDelta * 0.5f;
             } else {
                 if (angle > HALF_PI) {
-                    angle += 0.5f;
+                    angle += tickDelta * 0.5f;
                     if (angle > Math.PI) angle = (float) Math.PI;
-                } else angle -= 0.5f;
+                } else angle -= tickDelta * 0.5f;
             }
             if (angle < 0) angle = 0;
             if (angle > TWO_PI) angle = 0;

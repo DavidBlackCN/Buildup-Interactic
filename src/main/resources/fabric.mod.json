@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "interactic",
   "version": "${version}",
-  "name": "Interactic",
+  "name": "Buildup Interactic",
   "description": "Refined item interactions - fancy animations, throwing, enhanced pickup and more",
   "authors": [
     "glisco"

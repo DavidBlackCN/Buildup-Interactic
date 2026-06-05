@@ -1,4 +1,4 @@
-# Interactic
+# Buildup Interactic
 
 [![curseforge](https://img.shields.io/badge/-CurseForge-gray?style=for-the-badge&logo=curseforge&labelColor=orange)](https://www.curseforge.com/minecraft/mc-mods/interactic)
 [![modrinth](https://img.shields.io/badge/-modrinth-gray?style=for-the-badge&labelColor=green&labelWidth=15&logo=appveyor&logoColor=white)](https://modrinth.com/mod/interactic)
@@ -6,7 +6,7 @@
 
 ## Overview
 
-Interactic adds more ways to interact with dropped items, hence the name. Many of its features are inspired by ItemPhysic, this mod has however been built from the ground up for Fabric.
+Buildup Interactic adds more ways to interact with dropped items. It is a port of [Interactic](https://github.com/gliscowo/interactic) to Minecraft 1.21.11, with further polish on pickup, throwing, and rendering interactions on top of the original.
 
 ## Features
 
@@ -57,6 +57,19 @@ This version is a major update from the original MC 1.21 release, ported by the 
 - **GUI Rendering**: `GuiGraphics.blit()` signature changed — UV coordinates are now normalized (0-1) instead of pixel coordinates.
 - **KeyMapping API**: `KeyMapping` constructor now takes a `KeyMapping.Category` instead of a `String` for the category parameter.
 - **Item Model Predicates**: `ModelPredicateProviderRegistry` (Yarn) / `ItemProperties` (Mojang) was replaced by a JSON-based model selection system in 1.21.2+. The Java registration is commented out pending migration to the new model format.
+
+### Fixes & Polish
+
+- Fixed the item filter recipe failing to parse under the 1.21.2+ ingredient format.
+- Fixed throwing power not applying due to the `Player.drop()` parameter change.
+- Right-click pickup is injected at `@At("HEAD")` of `startUseItem`, so it works both empty-handed and while holding an item.
+- The pickup animation is restored by setting `pickupDelay` and calling `playerTouch()` to trigger the vanilla pickup effect.
+- Fixed cross-entity render data bleeding by storing per-entity data on `ItemEntityRenderState`.
+- Improved block-item render depth detection for the flat/non-flat decision.
+- Fixed the item name not showing under the crosshair: `GuiGraphics.drawString` now requires an alpha channel in 1.21.11, so the color was changed from `0xFFFFFF` to `0xFFFFFFFF`.
+- Restored the ground-settle animation style: the settle step is scaled by the partial tick again (instead of a fixed value), so items rotate flat smoothly rather than snapping instantly.
+- Relaxed the right-click pickup hit test to match the original, so items can be grabbed mid-air while in flight.
+- Polished pickup so that grabbing a block empty-handed or while holding a block no longer accidentally places it.
 
 ### Known Limitations
 
