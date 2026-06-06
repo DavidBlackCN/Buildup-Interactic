@@ -58,7 +58,7 @@ public class InteracticClientInit implements ClientModInitializer {
         if (player == null || camera == null) return;
 
         final var item = Helpers.raycastItem(camera, (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE));
-        if (item == null) return;
+        if (item == null || item.getItem().isEmpty()) return;
 
         var text = item.getItem().getTooltipLines(Item.TooltipContext.EMPTY, player, TooltipFlag.NORMAL).get(0);
         context.drawString(client.font, text, context.guiWidth() / 2 - client.font.width(text) / 2, context.guiHeight() / 2 + 15, 0xFFFFFFFF, true);

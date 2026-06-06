@@ -72,7 +72,12 @@ public abstract class ItemEntityRendererMixin extends EntityRenderer<ItemEntity,
         matrices.pushPose();
 
         final var item = itemStack.getItem();
-        boolean generatedFlatBlockItem = itemStack.is(Items.STRING) || itemStack.is(Items.WHEAT_SEEDS) || itemStack.is(Items.BEETROOT_SEEDS);
+        // Treat items whose ground model is a flat 2D sprite as lay-flat items, regardless of whether
+        // they are BlockItems. This matches vanilla's own 3D-vs-flat test (model Z depth > 0.0625).
+        // Fixes modded seeds/crops that are BlockItems but render as flat sprites standing upright.
+        boolean flatSpriteModel = state.item.getModelBoundingBox().getZsize() <= 0.0625;
+        boolean generatedFlatBlockItem = flatSpriteModel
+                || itemStack.is(Items.STRING) || itemStack.is(Items.WHEAT_SEEDS) || itemStack.is(Items.BEETROOT_SEEDS);
         double blockHeight = 0;
         boolean treatAsDepthModel = false;
         boolean isFlatModel = false;
