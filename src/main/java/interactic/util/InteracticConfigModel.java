@@ -28,9 +28,13 @@ public class InteracticConfigModel {
 
     @Hook
     @ServerSideConfigOption
-    @Comment("Whether the Item Filter should be loaded")
-    @RestartRequired
+    @Comment("Whether the item filter system should be active")
     public boolean itemFilterEnabled = true;
+
+    @Hook
+    @ServerSideConfigOption
+    @Comment("Whether sneaking lets players ignore the filter and pick up items anyway")
+    public boolean filterSneakOverride = true;
 
     @Hook
     @ServerSideConfigOption

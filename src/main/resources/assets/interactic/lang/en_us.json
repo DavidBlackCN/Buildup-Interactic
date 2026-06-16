@@ -1,5 +1,4 @@
 {
-  "item.interactic.item_filter": "Item Filter",
   "death.attack.thrown_item": "%1$s was pummeled by %2$s using %3$s",
   "death.attack.thrown_item.sword": "%1$s was executed by %2$s using %3$s",
   "death.attack.thrown_item.axe": "%1$s felt a trickshot %2$s performed using %3$s",
@@ -8,6 +7,19 @@
   "death.attack.thrown_item.hoe": "%1$s was reaped by %2$s using %3$s",
 
   "key.interactic.pickup_item": "[Interactic] Pick up Item",
+  "key.interactic.open_filter": "[Interactic] Open Item Filter",
+  "key.interactic.quick_add": "[Interactic] Quick Add/Remove Filter Item",
+
+  "screen.interactic.item_filter": "Item Filter",
+  "screen.interactic.item_filter.mode": "Mode",
+  "screen.interactic.item_filter.block": "Block",
+  "screen.interactic.item_filter.allow": "Allow",
+
+  "message.interactic.filter_added": "Added %1$s to the item filter",
+  "message.interactic.filter_removed": "Removed %1$s from the item filter",
+  "message.interactic.filter_full": "The item filter is full",
+
+  "text.interactic.open_filter": "Open Item Filter",
 
   "text.config.interactic.title": "Interactic Configuration",
   "text.config.interactic.section.global": "Global Options",
@@ -16,6 +28,7 @@
   "text.config.interactic.option.clientOnlyMode": "Client Only Mode",
   "text.config.interactic.option.rightClickPickup": "Right Click Pickup",
   "text.config.interactic.option.itemFilterEnabled": "Item Filter",
+  "text.config.interactic.option.filterSneakOverride": "Sneak Ignores Filter",
   "text.config.interactic.option.autoPickup": "Auto Pickup",
   "text.config.interactic.option.fancyItemRendering": "Fancy Item Rendering",
   "text.config.interactic.option.renderItemTooltips": "Render Item Tooltips",

@@ -52,9 +52,9 @@ public class MinecraftClientMixin {
         var camera = Minecraft.getInstance().getCameraEntity();
         if (player == null || camera == null) return;
 
-        var item = Helpers.raycastItem(camera, (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE));
+        var item = Helpers.raycastItem(camera, (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE), true);
         if (item != null) {
-            InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.Pickup(false));
+            InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.Pickup(true));
             suppressUseUntilRelease = true;
             player.swing(InteractionHand.MAIN_HAND);
             ci.cancel();

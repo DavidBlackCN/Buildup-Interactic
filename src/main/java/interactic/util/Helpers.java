@@ -1,22 +1,14 @@
 package interactic.util;
 
 import interactic.InteracticInit;
-import interactic.ItemFilterItem;
-import interactic.mixin.PlayerInventoryAccessor;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class Helpers {
 
@@ -38,8 +30,13 @@ public class Helpers {
             return null;
         }
 
+        // Strict targeting only applies to items resting on the ground, so that aiming near a
+        // grounded item doesn't hijack right-click block placement. Airborne items (e.g. ones you
+        // just threw) keep the generous pick-radius targeting so they can still be caught mid-flight.
+        final boolean strictHere = strict && item.onGround();
+
         Vec3 itemHitLocation = result.getLocation();
-        if (strict) {
+        if (strictHere) {
             var strictHit = item.getBoundingBox().inflate(0.02).clip(start, end);
             if (strictHit.isEmpty()) {
                 return null;
@@ -51,7 +48,7 @@ public class Helpers {
             if (!camera.level().getBlockState(blockResult.getBlockPos()).getCollisionShape(camera.level(), blockResult.getBlockPos()).isEmpty()) {
                 double itemDistanceSq = start.distanceToSqr(itemHitLocation);
                 double blockDistanceSq = start.distanceToSqr(blockResult.getLocation());
-                if (strict ? blockDistanceSq <= itemDistanceSq + 1.0E-6 : blockDistanceSq + 0.16 < itemDistanceSq) {
+                if (strictHere ? blockDistanceSq <= itemDistanceSq + 1.0E-6 : blockDistanceSq + 0.16 < itemDistanceSq) {
                     return null;
                 }
             }
@@ -61,40 +58,27 @@ public class Helpers {
     }
 
     public static boolean canPlayerPickUpItem(Player player, ItemEntity item) {
+        // Explicit right-click pickup expresses clear intent and overrides every filter rule
+        if (((InteracticPlayerExtension) player).isForcePickup()) return true;
+
         if (!InteracticInit.getConfig().autoPickup() && player.isShiftKeyDown() && !item.getTags().contains("interactic.ignore_auto_pickup_rule")) {
             return true;
         }
 
         if (!InteracticInit.getConfig().itemFilterEnabled()) return true;
-        var filters = ((PlayerInventoryAccessor) player.getInventory()).interactic$getItems().stream()
-                .filter(stack -> stack.is(InteracticInit.getItemFilter()))
-                .filter(stack -> stack.getOrDefault(ItemFilterItem.ENABLED, false))
-                .map(stack -> new FilterEntry(stack, ItemFilterItem.getItemsInFilter(stack), stack.getOrDefault(ItemFilterItem.BLOCK_MODE, false)))
-                .toList();
 
-        if (filters.isEmpty()) return true;
-
-        var allowed = filters.stream().allMatch(FilterEntry::blockMode);
-        for (var entry : filters) {
-            if (entry.blockMode) continue;
-
-            if (entry.filterItems.contains(item.getItem().getItem())) {
-                return true;
-            }
+        // Sneaking ignores the filter entirely and picks the item up regardless
+        if (InteracticInit.getConfig().filterSneakOverride() && player.isShiftKeyDown()) {
+            return true;
         }
 
-        if (!allowed) return false;
-
-        for (var entry : filters) {
-            if (!entry.blockMode) continue;
-
-            if (entry.filterItems.contains(item.getItem().getItem())) {
-                return false;
-            }
+        final boolean listed = ItemFilter.contains(player, item.getItem().getItem());
+        if (ItemFilter.blockMode(player)) {
+            // Block mode: items in the list are NOT picked up, everything else is
+            return !listed;
+        } else {
+            // Allow mode: only items in the list are picked up
+            return listed;
         }
-
-        return true;
     }
-
-    private record FilterEntry(ItemStack filter, List<Item> filterItems, boolean blockMode) {}
 }

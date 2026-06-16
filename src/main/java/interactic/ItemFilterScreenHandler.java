@@ -1,12 +1,10 @@
 package interactic;
 
 import interactic.util.InteracticNetworking;
+import interactic.util.ItemFilter;
 import io.wispforest.owo.client.screens.MenuUtils;
 import io.wispforest.owo.client.screens.SlotGenerator;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.resources.Identifier;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.NonNullList;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -16,12 +14,12 @@ import net.minecraft.world.item.ItemStack;
 
 public class ItemFilterScreenHandler extends AbstractContainerMenu {
 
-    public static final int SLOT_COUNT = 27;
+    public static final int SLOT_COUNT = ItemFilter.SLOT_COUNT;
     private final SimpleContainer inventory;
     private final Player player;
 
     public ItemFilterScreenHandler(int syncId, Inventory playerInventory) {
-        this(syncId, playerInventory, new SimpleContainer(SLOT_COUNT));
+        this(syncId, playerInventory, new FilterInventory(playerInventory.player));
     }
 
     public ItemFilterScreenHandler(int syncId, Inventory playerInventory, SimpleContainer inventory) {
@@ -41,10 +39,8 @@ public class ItemFilterScreenHandler extends AbstractContainerMenu {
     }
 
     public void setFilterMode(boolean mode) {
-        if (!(inventory instanceof ItemFilterItem.FilterInventory filterInventory)) return;
-        filterInventory.setFilterMode(mode);
-
-        InteracticNetworking.CHANNEL.serverHandle(player).send(new ItemFilterItem.SetFilterModePacket(mode));
+        ItemFilter.setMode(player, mode);
+        InteracticNetworking.CHANNEL.serverHandle(player).send(new InteracticNetworking.SetFilterModePacket(mode));
     }
 
     @Override
@@ -61,6 +57,35 @@ public class ItemFilterScreenHandler extends AbstractContainerMenu {
     public void removed(Player playerEntity) {
         super.removed(playerEntity);
         this.inventory.stopOpen(playerEntity);
+    }
+
+    /**
+     * A container backed by the player's {@link ItemFilter} attachment. Reads the filter
+     * contents on open and writes them back whenever a slot changes.
+     */
+    public static class FilterInventory extends SimpleContainer {
+
+        private final Player player;
+
+        public FilterInventory(Player player) {
+            super(SLOT_COUNT);
+            this.player = player;
+
+            var items = ItemFilter.get(player).items();
+            for (int i = 0; i < items.size() && i < SLOT_COUNT; i++) {
+                super.setItem(i, items.get(i).copy());
+            }
+        }
+
+        @Override
+        public void setChanged() {
+            super.setChanged();
+            var items = NonNullList.withSize(SLOT_COUNT, ItemStack.EMPTY);
+            for (int i = 0; i < SLOT_COUNT; i++) {
+                items.set(i, getItem(i).copy());
+            }
+            ItemFilter.setItems(player, items);
+        }
     }
 
     private static class GhostSlot extends Slot {

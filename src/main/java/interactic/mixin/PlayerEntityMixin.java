@@ -18,9 +18,22 @@ public class PlayerEntityMixin implements InteracticPlayerExtension {
     @Unique
     private float dropPower = 1;
 
+    @Unique
+    private boolean forcePickup;
+
     @Override
     public void setDropPower(float power) {
         this.dropPower = power;
+    }
+
+    @Override
+    public void setForcePickup(boolean forcePickup) {
+        this.forcePickup = forcePickup;
+    }
+
+    @Override
+    public boolean isForcePickup() {
+        return this.forcePickup;
     }
 
     @Inject(method = "drop", at = @At("RETURN"))

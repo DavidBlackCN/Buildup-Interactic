@@ -7,6 +7,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
@@ -31,8 +32,8 @@ public class ItemFilterScreen extends AbstractContainerScreen<ItemFilterScreenHa
         super.init();
         this.titleLabelX = (this.imageWidth - this.font.width(this.title)) / 2;
 
-        this.addRenderableWidget(this.blockButton = Button.builder(Component.literal("Block"), button -> sendModeRequest(true)).bounds(this.leftPos + 43, this.topPos + 78, 60, 12).build());
-        this.addRenderableWidget(this.allowButton = Button.builder(Component.literal("Allow"), button -> sendModeRequest(false)).bounds(this.leftPos + 108, this.topPos + 78, 60, 12).build());
+        this.addRenderableWidget(this.blockButton = Button.builder(Component.translatable("screen.interactic.item_filter.block"), button -> sendModeRequest(true)).bounds(this.leftPos + 43, this.topPos + 78, 60, 12).build());
+        this.addRenderableWidget(this.allowButton = Button.builder(Component.translatable("screen.interactic.item_filter.allow"), button -> sendModeRequest(false)).bounds(this.leftPos + 108, this.topPos + 78, 60, 12).build());
     }
 
     private static void sendModeRequest(boolean mode) {
@@ -43,7 +44,7 @@ public class ItemFilterScreen extends AbstractContainerScreen<ItemFilterScreenHa
     public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
 
-        context.drawString(this.minecraft.font, "Mode", this.leftPos + 8, this.topPos + 80, 0x404040, false);
+        context.drawString(this.minecraft.font, Component.translatable("screen.interactic.item_filter.mode"), this.leftPos + 8, this.topPos + 80, 0x404040, false);
 
         this.renderTooltip(context, mouseX, mouseY);
 
@@ -53,10 +54,10 @@ public class ItemFilterScreen extends AbstractContainerScreen<ItemFilterScreenHa
 
     @Override
     protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
-        context.blit(TEXTURE, this.leftPos, this.topPos, this.imageWidth, this.imageHeight, 0, 0, this.imageWidth / 256f, this.imageHeight / 256f);
+        context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight, 256, 256);
 
         if (!this.blockMode) {
-            context.blit(TEXTURE, this.leftPos + 7, this.topPos + 19, 162, 54, 0, 178 / 256f, 162 / 256f, (178 + 54) / 256f);
+            context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, this.leftPos + 7, this.topPos + 19, 0, 178, 162, 54, 256, 256);
         }
     }
 }
