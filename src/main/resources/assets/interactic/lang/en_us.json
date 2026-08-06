@@ -36,5 +36,18 @@
   "text.config.interactic.option.itemThrowing": "Item Throwing",
   "text.config.interactic.option.itemsActAsProjectiles": "Items act as projectiles",
   "text.config.interactic.option.swingArm": "Swing arm on drop",
-  "text.config.interactic.option.blocksLayFlat": "Blocks lay flat"
+  "text.config.interactic.option.blocksLayFlat": "Blocks lay flat",
+
+  "text.config.interactic.option.clientOnlyMode.description": "Disable every feature that requires Interactic on the server.",
+  "text.config.interactic.option.rightClickPickup.description": "Allow players to pick up dropped items by clicking them or using the pickup key.",
+  "text.config.interactic.option.itemFilterEnabled.description": "Enable the per-player automatic-pickup filter.",
+  "text.config.interactic.option.filterSneakOverride.description": "Allow sneaking players to bypass their item filter.",
+  "text.config.interactic.option.autoPickup.description": "Allow dropped items to be picked up through normal collision.",
+  "text.config.interactic.option.fancyItemRendering.description": "Replace vanilla dropped-item rendering with Interactic's animated layout.",
+  "text.config.interactic.option.renderItemTooltips.description": "Show the name of the dropped item under the crosshair.",
+  "text.config.interactic.option.renderFullTooltip.description": "Show the dropped item's complete tooltip.",
+  "text.config.interactic.option.itemThrowing.description": "Charge the drop key to throw items farther.",
+  "text.config.interactic.option.itemsActAsProjectiles.description": "Allow thrown weapons and tools to damage entities.",
+  "text.config.interactic.option.swingArm.description": "Swing the player's arm when an item is dropped or thrown.",
+  "text.config.interactic.option.blocksLayFlat.description": "Lay block items flat instead of giving them a random three-dimensional rotation."
 }

@@ -2,14 +2,13 @@ package interactic;
 
 import interactic.util.Helpers;
 import interactic.util.InteracticNetworking;
-import io.wispforest.owo.config.ui.ConfigScreenProviders;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.KeyMapping;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -20,15 +19,15 @@ import net.minecraft.world.item.TooltipFlag;
 
 public class InteracticClientInit implements ClientModInitializer {
 
-    public static final KeyMapping PICKUP_ITEM = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.interactic.pickup_item",
+    public static final KeyMapping PICKUP_ITEM = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.interactic.pickup_item",
             InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), KeyMapping.Category.MISC));
 
     // Opens the item filter screen; intentionally unbound by default
-    public static final KeyMapping OPEN_FILTER = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.interactic.open_filter",
+    public static final KeyMapping OPEN_FILTER = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.interactic.open_filter",
             InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), KeyMapping.Category.MISC));
 
     // Quickly toggles the held item in the filter list; bound to "i" by default
-    public static final KeyMapping QUICK_ADD = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.interactic.quick_add",
+    public static final KeyMapping QUICK_ADD = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.interactic.quick_add",
             InputConstants.Type.KEYSYM, InputConstants.KEY_I, KeyMapping.Category.MISC));
 
     @Override
@@ -48,14 +47,14 @@ public class InteracticClientInit implements ClientModInitializer {
                 var item = Helpers.raycastItem(camera, (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE));
                 if (item == null) continue;
 
-                InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.Pickup(false));
+                InteracticNetworking.sendPickup(false);
                 player.swing(InteractionHand.MAIN_HAND);
             }
 
             while (OPEN_FILTER.consumeClick()) {
                 if (!InteracticInit.getConfig().itemFilterEnabled()) continue;
                 if (client.player == null) continue;
-                InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.OpenFilterScreen());
+                InteracticNetworking.sendOpenFilterScreen();
             }
 
             while (QUICK_ADD.consumeClick()) {
@@ -65,15 +64,14 @@ public class InteracticClientInit implements ClientModInitializer {
                 if (player == null) continue;
                 if (player.getMainHandItem().isEmpty()) continue;
 
-                InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.QuickAddItem());
+                InteracticNetworking.sendQuickAddItem();
             }
         });
 
-        ConfigScreenProviders.register("interactic", InteracticConfigScreen::new);
         InteracticNetworking.initClient();
     }
 
-    private static void renderItemTooltip(GuiGraphics context, DeltaTracker tickCounter) {
+    private static void renderItemTooltip(GuiGraphicsExtractor context, DeltaTracker tickCounter) {
         if (!InteracticInit.getConfig().renderItemTooltips()) return;
 
         final var client = Minecraft.getInstance();
@@ -86,6 +84,6 @@ public class InteracticClientInit implements ClientModInitializer {
         if (item == null || item.getItem().isEmpty()) return;
 
         var text = item.getItem().getTooltipLines(Item.TooltipContext.EMPTY, player, TooltipFlag.NORMAL).get(0);
-        context.drawString(client.font, text, context.guiWidth() / 2 - client.font.width(text) / 2, context.guiHeight() / 2 + 15, 0xFFFFFFFF, true);
+        context.text(client.font, text, context.guiWidth() / 2 - client.font.width(text) / 2, context.guiHeight() / 2 + 15, 0xFFFFFFFF, true);
     }
 }

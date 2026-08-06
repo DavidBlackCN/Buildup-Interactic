@@ -6,7 +6,7 @@
 
 ## 概述
 
-Buildup Interactic 为掉落物添加了更多的交互方式。它基于 [Interactic](https://github.com/gliscowo/interactic) 移植至 Minecraft 1.21.11，并在原版基础上对拾取、投掷与渲染等交互细节做了进一步打磨。
+Buildup Interactic 为掉落物添加了更多的交互方式。它基于 [Interactic](https://github.com/gliscowo/interactic) 移植至 Minecraft 26.1.2，并在原版基础上对拾取、投掷与渲染等交互细节做了进一步打磨。
 
 ## 功能
 
@@ -20,10 +20,11 @@ Buildup Interactic 为掉落物添加了更多的交互方式。它基于 [Inter
 
 ## 需求
 
-- Minecraft **1.21.11**
-- Fabric Loader **>=0.16.0**
+- Minecraft **26.1.2**
+- Java **25 或更高版本**
+- Fabric Loader **>=0.19.3**
 - Fabric API
-- [owo-lib](https://modrinth.com/mod/owo-lib) **>=0.13.0**
+- [YetAnotherConfigLib (YACL)](https://modrinth.com/mod/yacl) **>=3.9.6**
 
 ## 配置
 

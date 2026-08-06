@@ -2,8 +2,6 @@ package interactic;
 
 import interactic.util.InteracticNetworking;
 import interactic.util.ItemFilter;
-import io.wispforest.owo.client.screens.MenuUtils;
-import io.wispforest.owo.client.screens.SlotGenerator;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -30,17 +28,30 @@ public class ItemFilterScreenHandler extends AbstractContainerMenu {
         this.player = playerInventory.player;
         inventory.startOpen(player);
 
-        SlotGenerator.begin(this::addSlot, 8, 20)
-                .slotFactory(GhostSlot::new)
-                .grid(inventory, 0, 9, 3)
-                .defaultSlotFactory()
-                .moveTo(8, 96)
-                .playerInventory(playerInventory);
+        for (int row = 0; row < 3; row++) {
+            for (int column = 0; column < 9; column++) {
+                int index = column + row * 9;
+                addSlot(new GhostSlot(inventory, index, 8 + column * 18, 20 + row * 18));
+            }
+        }
+
+        for (int row = 0; row < 3; row++) {
+            for (int column = 0; column < 9; column++) {
+                int index = column + row * 9 + 9;
+                addSlot(new Slot(playerInventory, index, 8 + column * 18, 96 + row * 18));
+            }
+        }
+
+        for (int column = 0; column < 9; column++) {
+            addSlot(new Slot(playerInventory, column, 8 + column * 18, 154));
+        }
     }
 
     public void setFilterMode(boolean mode) {
         ItemFilter.setMode(player, mode);
-        InteracticNetworking.CHANNEL.serverHandle(player).send(new InteracticNetworking.SetFilterModePacket(mode));
+        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(
+                (net.minecraft.server.level.ServerPlayer) player,
+                new InteracticNetworking.SetFilterModePacket(mode));
     }
 
     @Override
@@ -50,7 +61,26 @@ public class ItemFilterScreenHandler extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
-        return MenuUtils.handleSlotTransfer(this, index, 0);
+        if (index < 0 || index >= slots.size()) return ItemStack.EMPTY;
+
+        var slot = slots.get(index);
+        if (!slot.hasItem()) return ItemStack.EMPTY;
+        var original = slot.getItem().copy();
+
+        if (index < SLOT_COUNT) {
+            slot.set(ItemStack.EMPTY);
+            return original;
+        }
+
+        for (int filterSlot = 0; filterSlot < SLOT_COUNT; filterSlot++) {
+            var target = slots.get(filterSlot);
+            if (!target.hasItem()) {
+                target.set(new ItemStack(original.getItem()));
+                return original;
+            }
+        }
+
+        return ItemStack.EMPTY;
     }
 
     @Override

@@ -36,5 +36,18 @@
   "text.config.interactic.option.itemThrowing": "物品投掷",
   "text.config.interactic.option.itemsActAsProjectiles": "物品投掷伤害",
   "text.config.interactic.option.swingArm": "投掷时挥动手臂",
-  "text.config.interactic.option.blocksLayFlat": "方块物品平放"
+  "text.config.interactic.option.blocksLayFlat": "方块物品平放",
+
+  "text.config.interactic.option.clientOnlyMode.description": "禁用所有需要服务端安装 Interactic 的功能。",
+  "text.config.interactic.option.rightClickPickup.description": "允许通过点击掉落物或使用拾取快捷键来拾取物品。",
+  "text.config.interactic.option.itemFilterEnabled.description": "启用每位玩家独立的自动拾取过滤器。",
+  "text.config.interactic.option.filterSneakOverride.description": "允许潜行中的玩家绕过物品过滤器。",
+  "text.config.interactic.option.autoPickup.description": "允许通过正常碰撞拾取掉落物。",
+  "text.config.interactic.option.fancyItemRendering.description": "使用 Interactic 的动画布局替换原版掉落物渲染。",
+  "text.config.interactic.option.renderItemTooltips.description": "在准星下方显示指向的掉落物名称。",
+  "text.config.interactic.option.renderFullTooltip.description": "显示掉落物的完整提示信息。",
+  "text.config.interactic.option.itemThrowing.description": "按住丢弃键蓄力，将物品投掷得更远。",
+  "text.config.interactic.option.itemsActAsProjectiles.description": "允许投掷出的武器和工具对实体造成伤害。",
+  "text.config.interactic.option.swingArm.description": "丢弃或投掷物品时播放玩家挥手动画。",
+  "text.config.interactic.option.blocksLayFlat.description": "让方块物品平放，而不是采用随机的三维旋转。"
 }

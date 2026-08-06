@@ -4,11 +4,9 @@ import interactic.InteracticClientInit;
 import interactic.InteracticInit;
 import interactic.util.Helpers;
 import interactic.util.InteracticNetworking;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.player.LocalPlayer;
-import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -46,7 +44,7 @@ public class MinecraftClientMixin {
         }
 
         if (!InteracticInit.getConfig().rightClickPickup()) return;
-        if (KeyBindingHelper.getBoundKeyOf(InteracticClientInit.PICKUP_ITEM) != InputConstants.UNKNOWN) return;
+        if (!InteracticClientInit.PICKUP_ITEM.isUnbound()) return;
 
         var player = Minecraft.getInstance().player;
         var camera = Minecraft.getInstance().getCameraEntity();
@@ -54,7 +52,7 @@ public class MinecraftClientMixin {
 
         var item = Helpers.raycastItem(camera, (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE), true);
         if (item != null) {
-            InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.Pickup(true));
+            InteracticNetworking.sendPickup(true);
             suppressUseUntilRelease = true;
             player.swing(InteractionHand.MAIN_HAND);
             ci.cancel();
@@ -73,7 +71,7 @@ public class MinecraftClientMixin {
             if (dropPower >= 1.5) {
                 var player = Minecraft.getInstance().player;
                 if (player == null) return;
-                InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.DropWithPower(dropPower, dropAll));
+                InteracticNetworking.sendDropWithPower(dropPower, dropAll);
 
                 int selectedSlot = ((PlayerInventoryAccessor) (Object) player.getInventory()).interactic$getSelectedSlot();
                 if (!player.getInventory().removeItem(selectedSlot, dropAll && !player.getInventory().getItem(selectedSlot).isEmpty() ? player.getInventory().getItem(selectedSlot).getCount() : 1).isEmpty()) {
@@ -99,7 +97,7 @@ public class MinecraftClientMixin {
             dropPower += 0.075f;
             if (dropPower > 5) dropPower = 5;
             if (dropPower >= 1.5)
-                clientPlayerEntity.displayClientMessage(Component.literal("Power: " + BigDecimal.valueOf(Math.max(dropPower, 1)).setScale(1, RoundingMode.HALF_UP)), true);
+                clientPlayerEntity.sendOverlayMessage(Component.literal("Power: " + BigDecimal.valueOf(Math.max(dropPower, 1)).setScale(1, RoundingMode.HALF_UP)));
             return false;
         } else {
             return clientPlayerEntity.drop(dropEntireStack);

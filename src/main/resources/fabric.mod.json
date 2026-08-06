@@ -5,7 +5,8 @@
   "name": "Buildup Interactic",
   "description": "Refined item interactions - fancy animations, throwing, enhanced pickup and more",
   "authors": [
-    "glisco"
+    "glisco",
+    "DavidBlackCN"
   ],
   "contact": {
     "homepage": "https://www.curseforge.com/minecraft/mc-mods/interactic",
@@ -24,6 +25,9 @@
     ],
     "client": [
       "interactic.InteracticClientInit"
+    ],
+    "modmenu": [
+      "interactic.InteracticModMenu"
     ]
   },
   "custom": {
@@ -34,9 +38,10 @@
     }
   },
   "depends": {
-    "fabricloader": ">=0.16.0",
-    "fabric": "*",
-    "minecraft": ">=1.21.11",
-    "owo": ">=0.13.0"
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "minecraft": "~26.1.2",
+    "java": ">=25",
+    "yet_another_config_lib_v3": ">=3.9.6"
   }
 }

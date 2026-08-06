@@ -5,85 +5,96 @@ import interactic.ItemFilterScreen;
 import interactic.ItemFilterScreenHandler;
 import interactic.mixin.ItemEntityAccessor;
 import interactic.mixin.PlayerInventoryAccessor;
-import io.wispforest.owo.network.OwoNetChannel;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-public class InteracticNetworking {
+public final class InteracticNetworking {
 
-    public static final OwoNetChannel CHANNEL = OwoNetChannel.create(InteracticInit.id("channel"));
+    private InteracticNetworking() {}
 
     public static void init() {
-        CHANNEL.registerClientboundDeferred(SetFilterModePacket.class);
+        PayloadTypeRegistry.serverboundPlay().register(Pickup.TYPE, Pickup.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(DropWithPower.TYPE, DropWithPower.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(FilterModeRequest.TYPE, FilterModeRequest.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(OpenFilterScreen.TYPE, OpenFilterScreen.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(QuickAddItem.TYPE, QuickAddItem.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(SetFilterModePacket.TYPE, SetFilterModePacket.CODEC);
 
-        CHANNEL.registerServerbound(Pickup.class, (message, access) -> {
+        ServerPlayNetworking.registerGlobalReceiver(Pickup.TYPE, (message, context) -> {
             if (!InteracticInit.getConfig().rightClickPickup()) return;
 
-            var player = access.player();
-            final var item = Helpers.raycastItem(player.getCamera(), (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE), message.strict());
-            if (item == null || ((ItemEntityAccessor) item).interactic$getPickupDelay() == Short.MAX_VALUE) {
-                return;
-            }
+            var player = context.player();
+            var item = Helpers.raycastItem(player.getCamera(), (float) player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE), message.strict());
+            if (item == null || ((ItemEntityAccessor) item).interactic$getPickupDelay() == Short.MAX_VALUE) return;
 
-            final var itemAccessor = (ItemEntityAccessor) item;
-            final var pickupDelay = itemAccessor.interactic$getPickupDelay();
+            var itemAccessor = (ItemEntityAccessor) item;
+            var pickupDelay = itemAccessor.interactic$getPickupDelay();
             itemAccessor.interactic$setPickupDelay(0);
 
-            // Explicit right-click pickup is a deliberate action and should override the item filter
-            ((InteracticPlayerExtension) player).setForcePickup(true);
-            item.playerTouch(player);
-            ((InteracticPlayerExtension) player).setForcePickup(false);
+            var extension = (InteracticPlayerExtension) player;
+            extension.setForcePickup(true);
+            try {
+                item.playerTouch(player);
+            } finally {
+                extension.setForcePickup(false);
+            }
 
             if (!item.isRemoved()) itemAccessor.interactic$setPickupDelay(pickupDelay);
         });
 
-        CHANNEL.registerServerbound(DropWithPower.class, (message, access) -> {
-            ((InteracticPlayerExtension) access.player()).setDropPower(message.power);
+        ServerPlayNetworking.registerGlobalReceiver(DropWithPower.TYPE, (message, context) -> {
+            var player = context.player();
+            ((InteracticPlayerExtension) player).setDropPower(message.power());
 
-            var player = access.player();
             int selectedSlot = ((PlayerInventoryAccessor) (Object) player.getInventory()).interactic$getSelectedSlot();
-            player.drop(player.getInventory().removeItem(selectedSlot, message.dropAll && !player.getInventory().getItem(selectedSlot).isEmpty() ? player.getInventory().getItem(selectedSlot).getCount() : 1), false);
+            int count = message.dropAll() && !player.getInventory().getItem(selectedSlot).isEmpty()
+                    ? player.getInventory().getItem(selectedSlot).getCount() : 1;
+            player.drop(player.getInventory().removeItem(selectedSlot, count), false);
         });
 
-        CHANNEL.registerServerbound(FilterModeRequest.class, (message, access) -> {
-            if (!(access.player().containerMenu instanceof ItemFilterScreenHandler filterHandler)) return;
-            filterHandler.setFilterMode(message.newMode);
+        ServerPlayNetworking.registerGlobalReceiver(FilterModeRequest.TYPE, (message, context) -> {
+            if (context.player().containerMenu instanceof ItemFilterScreenHandler filterHandler) {
+                filterHandler.setFilterMode(message.newMode());
+            }
         });
 
-        CHANNEL.registerServerbound(OpenFilterScreen.class, (message, access) -> {
+        ServerPlayNetworking.registerGlobalReceiver(OpenFilterScreen.TYPE, (message, context) -> {
+            if (InteracticInit.getConfig().itemFilterEnabled()) openFilterScreen(context.player());
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(QuickAddItem.TYPE, (message, context) -> {
             if (!InteracticInit.getConfig().itemFilterEnabled()) return;
-            openFilterScreen(access.player());
-        });
 
-        CHANNEL.registerServerbound(QuickAddItem.class, (message, access) -> {
-            if (!InteracticInit.getConfig().itemFilterEnabled()) return;
-
-            var player = access.player();
+            var player = context.player();
             var stack = player.getMainHandItem();
             if (stack.isEmpty()) return;
 
-            var item = stack.getItem();
-            var result = ItemFilter.toggleItem(player, item);
+            var result = ItemFilter.toggleItem(player, stack.getItem());
             var itemName = stack.getHoverName();
-
             switch (result) {
-                case ADDED -> player.displayClientMessage(Component.translatable("message.interactic.filter_added", itemName), true);
-                case REMOVED -> player.displayClientMessage(Component.translatable("message.interactic.filter_removed", itemName), true);
-                case FULL -> player.displayClientMessage(Component.translatable("message.interactic.filter_full"), true);
+                case ADDED -> player.sendOverlayMessage(Component.translatable("message.interactic.filter_added", itemName));
+                case REMOVED -> player.sendOverlayMessage(Component.translatable("message.interactic.filter_removed", itemName));
+                case FULL -> player.sendOverlayMessage(Component.translatable("message.interactic.filter_full"));
             }
         });
     }
 
     public static void openFilterScreen(Player player) {
-        final var factory = new MenuProvider() {
+        var factory = new MenuProvider() {
             @Override
             public @NotNull AbstractContainerMenu createMenu(int syncId, Inventory playerInv, Player p) {
                 return new ItemFilterScreenHandler(syncId, playerInv, new ItemFilterScreenHandler.FilterInventory(p));
@@ -95,26 +106,67 @@ public class InteracticNetworking {
             }
         };
         player.openMenu(factory);
-        CHANNEL.serverHandle(player).send(new SetFilterModePacket(ItemFilter.blockMode(player)));
+        ServerPlayNetworking.send((net.minecraft.server.level.ServerPlayer) player,
+                new SetFilterModePacket(ItemFilter.blockMode(player)));
     }
 
     @Environment(EnvType.CLIENT)
     public static void initClient() {
-        CHANNEL.registerClientbound(SetFilterModePacket.class, (message, access) -> {
-            if (!(access.runtime().screen instanceof ItemFilterScreen screen)) return;
-            screen.blockMode = message.mode();
+        ClientPlayNetworking.registerGlobalReceiver(SetFilterModePacket.TYPE, (message, context) -> {
+            if (context.client().screen instanceof ItemFilterScreen screen) screen.blockMode = message.mode();
         });
     }
 
-    public record Pickup(boolean strict) {}
+    @Environment(EnvType.CLIENT)
+    public static void sendPickup(boolean strict) { ClientPlayNetworking.send(new Pickup(strict)); }
+    @Environment(EnvType.CLIENT)
+    public static void sendDropWithPower(float power, boolean dropAll) { ClientPlayNetworking.send(new DropWithPower(power, dropAll)); }
+    @Environment(EnvType.CLIENT)
+    public static void sendFilterMode(boolean mode) { ClientPlayNetworking.send(new FilterModeRequest(mode)); }
+    @Environment(EnvType.CLIENT)
+    public static void sendOpenFilterScreen() { ClientPlayNetworking.send(OpenFilterScreen.INSTANCE); }
+    @Environment(EnvType.CLIENT)
+    public static void sendQuickAddItem() { ClientPlayNetworking.send(QuickAddItem.INSTANCE); }
 
-    public record DropWithPower(float power, boolean dropAll) {}
+    public record Pickup(boolean strict) implements CustomPacketPayload {
+        public static final Type<Pickup> TYPE = new Type<>(InteracticInit.id("pickup"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, Pickup> CODEC = StreamCodec.composite(
+                ByteBufCodecs.BOOL, Pickup::strict, Pickup::new);
+        @Override public Type<Pickup> type() { return TYPE; }
+    }
 
-    public record FilterModeRequest(boolean newMode) {}
+    public record DropWithPower(float power, boolean dropAll) implements CustomPacketPayload {
+        public static final Type<DropWithPower> TYPE = new Type<>(InteracticInit.id("drop_with_power"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, DropWithPower> CODEC = StreamCodec.composite(
+                ByteBufCodecs.FLOAT, DropWithPower::power, ByteBufCodecs.BOOL, DropWithPower::dropAll, DropWithPower::new);
+        @Override public Type<DropWithPower> type() { return TYPE; }
+    }
 
-    public record OpenFilterScreen() {}
+    public record FilterModeRequest(boolean newMode) implements CustomPacketPayload {
+        public static final Type<FilterModeRequest> TYPE = new Type<>(InteracticInit.id("filter_mode"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, FilterModeRequest> CODEC = StreamCodec.composite(
+                ByteBufCodecs.BOOL, FilterModeRequest::newMode, FilterModeRequest::new);
+        @Override public Type<FilterModeRequest> type() { return TYPE; }
+    }
 
-    public record QuickAddItem() {}
+    public record OpenFilterScreen() implements CustomPacketPayload {
+        public static final OpenFilterScreen INSTANCE = new OpenFilterScreen();
+        public static final Type<OpenFilterScreen> TYPE = new Type<>(InteracticInit.id("open_filter_screen"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, OpenFilterScreen> CODEC = StreamCodec.unit(INSTANCE);
+        @Override public Type<OpenFilterScreen> type() { return TYPE; }
+    }
 
-    public record SetFilterModePacket(boolean mode) {}
+    public record QuickAddItem() implements CustomPacketPayload {
+        public static final QuickAddItem INSTANCE = new QuickAddItem();
+        public static final Type<QuickAddItem> TYPE = new Type<>(InteracticInit.id("quick_add_item"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, QuickAddItem> CODEC = StreamCodec.unit(INSTANCE);
+        @Override public Type<QuickAddItem> type() { return TYPE; }
+    }
+
+    public record SetFilterModePacket(boolean mode) implements CustomPacketPayload {
+        public static final Type<SetFilterModePacket> TYPE = new Type<>(InteracticInit.id("set_filter_mode"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, SetFilterModePacket> CODEC = StreamCodec.composite(
+                ByteBufCodecs.BOOL, SetFilterModePacket::mode, SetFilterModePacket::new);
+        @Override public Type<SetFilterModePacket> type() { return TYPE; }
+    }
 }

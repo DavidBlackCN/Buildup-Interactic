@@ -61,7 +61,7 @@ public class Helpers {
         // Explicit right-click pickup expresses clear intent and overrides every filter rule
         if (((InteracticPlayerExtension) player).isForcePickup()) return true;
 
-        if (!InteracticInit.getConfig().autoPickup() && player.isShiftKeyDown() && !item.getTags().contains("interactic.ignore_auto_pickup_rule")) {
+        if (!InteracticInit.getConfig().autoPickup() && player.isShiftKeyDown() && !item.entityTags().contains("interactic.ignore_auto_pickup_rule")) {
             return true;
         }
 

@@ -1,4 +1,22 @@
-## Upgrade Notes (1.21 → 1.21.11)
+## Upgrade Notes (1.21.11 → 26.1.2)
+
+The 26.1.2 port updates the project to Java 25 and Minecraft's unobfuscated distribution. The build now uses `net.fabricmc.fabric-loom` without a mappings dependency or remapping configurations. Fabric dependencies were moved to standard Gradle configurations and updated to Fabric Loader 0.19.3, Fabric API 0.155.2+26.1.2, YACL 3.9.6+26.1-fabric, and ModMenu 18.0.0.
+
+Code changes include the new `GuiGraphicsExtractor` extraction-based GUI pipeline, the renamed Fabric key-mapping API, the relocated level camera render state, overlay-message and entity-tag API renames, and constructor-based container screen dimensions.
+
+### Configuration library migration
+
+owo-lib has been replaced by YetAnotherConfigLib (YACL) 3.9.6. Configuration persistence and the config screen now use YACL, networking uses Fabric's typed payload API, and the item-filter menu uses native Minecraft slots. owo-lib, owo-sentinel, Jankson and Endec are no longer dependencies.
+
+## 从 1.21.11 升级到 26.1.2
+
+26.1.2 版本将工程升级到 Java 25，并适配 Minecraft 不再混淆的新发行方式。构建脚本改用 `net.fabricmc.fabric-loom`，移除了映射与重映射配置，并更新了 Fabric Loader、Fabric API、YACL 和 ModMenu。源码同时适配了新的 GUI 提取渲染管线、按键映射 API、相机渲染状态、操作栏消息、实体标签及容器界面尺寸 API。
+
+### 配置库迁移
+
+已使用 YetAnotherConfigLib（YACL）3.9.6 替换 owo-lib。配置持久化和配置界面由 YACL 实现，网络通信改用 Fabric typed payload API，物品过滤菜单改用 Minecraft 原生槽位。工程不再依赖 owo-lib、owo-sentinel、Jankson 或 Endec。
+
+## Previous Upgrade Notes (1.21 → 1.21.11)
 
 This version is a major update from the original MC 1.21 release, ported by the community. See [README_zh.md](README_zh.md) for the Chinese version.
 

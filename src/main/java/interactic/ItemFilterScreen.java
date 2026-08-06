@@ -1,11 +1,8 @@
 package interactic;
 
 import interactic.util.InteracticNetworking;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
@@ -22,8 +19,7 @@ public class ItemFilterScreen extends AbstractContainerScreen<ItemFilterScreenHa
     private Button allowButton = null;
 
     public ItemFilterScreen(ItemFilterScreenHandler handler, Inventory inventory, Component title) {
-        super(handler, inventory, title);
-        this.imageHeight = 178;
+        super(handler, inventory, title, 176, 178);
         this.inventoryLabelY = 69420;
     }
 
@@ -37,23 +33,24 @@ public class ItemFilterScreen extends AbstractContainerScreen<ItemFilterScreenHa
     }
 
     private static void sendModeRequest(boolean mode) {
-        InteracticNetworking.CHANNEL.clientHandle().send(new InteracticNetworking.FilterModeRequest(mode));
+        InteracticNetworking.sendFilterMode(mode);
     }
 
     @SuppressWarnings({"ConstantConditions"})
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-
-        context.drawString(this.minecraft.font, Component.translatable("screen.interactic.item_filter.mode"), this.leftPos + 8, this.topPos + 80, 0x404040, false);
-
-        this.renderTooltip(context, mouseX, mouseY);
-
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
         this.blockButton.active = !this.blockMode;
         this.allowButton.active = this.blockMode;
     }
 
     @Override
-    protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
+    protected void extractLabels(GuiGraphicsExtractor context, int mouseX, int mouseY) {
+        super.extractLabels(context, mouseX, mouseY);
+        context.text(this.minecraft.font, Component.translatable("screen.interactic.item_filter.mode"), 8, 80, 0xFF404040, false);
+    }
+
+    @Override
+    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         context.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight, 256, 256);
 
         if (!this.blockMode) {

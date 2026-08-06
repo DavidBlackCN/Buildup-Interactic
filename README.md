@@ -6,7 +6,7 @@
 
 ## Overview
 
-Buildup Interactic adds more ways to interact with dropped items. It is a port of [Interactic](https://github.com/gliscowo/interactic) to Minecraft 1.21.11, with further polish on pickup, throwing, and rendering interactions on top of the original.
+Buildup Interactic adds more ways to interact with dropped items. It is a port of [Interactic](https://github.com/gliscowo/interactic) to Minecraft 26.1.2, with further polish on pickup, throwing, and rendering interactions on top of the original.
 
 ## Features
 
@@ -20,10 +20,11 @@ All of these features can be individually toggled in the config.
 
 ## Requirements
 
-- Minecraft **1.21.11**
-- Fabric Loader **>=0.16.0**
+- Minecraft **26.1.2**
+- Java **25 or newer**
+- Fabric Loader **>=0.19.3**
 - Fabric API
-- [owo-lib](https://modrinth.com/mod/owo-lib) **>=0.13.0**
+- [YetAnotherConfigLib (YACL)](https://modrinth.com/mod/yacl) **>=3.9.6**
 
 ## Configuration
 
